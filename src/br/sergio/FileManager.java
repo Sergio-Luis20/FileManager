@@ -12,26 +12,23 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class FileManager {
+public final class FileManager {
 	
-	public static Object readObject(File file) {
+	private FileManager() {
+		
+	}
+	
+	public static Object readObject(File file) throws IOException, ClassNotFoundException {
 		if(!file.exists()) {
 			return null;
 		}
-		Object imported = null;
-		try {
-			FileInputStream fis = new FileInputStream(file);
-			ObjectInputStream obj = new ObjectInputStream(fis);
-			imported = obj.readObject();
-			obj.close();
-		} catch(IOException | ClassNotFoundException e) {
-			e.printStackTrace();
-			return null;
-		}
+		FileInputStream fis = new FileInputStream(file);
+		ObjectInputStream obj = new ObjectInputStream(fis);
+		Serializable imported = (Serializable) obj.readObject();
+		obj.close();
 		return imported;
 	}
 	
@@ -47,6 +44,10 @@ public class FileManager {
 		try(BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
 			writer.write(text);
 		}
+	}
+	
+	public static void appendText(File file, String text) throws IOException {
+		appendText(file, text, true);
 	}
 	
 	public static void appendText(File file, String text, boolean skipLine) throws IOException {
@@ -88,7 +89,8 @@ public class FileManager {
 	}
 	
 	public static String readText(File file) throws IOException {
-		return new String(readBytes(file));
+		byte[] array = readBytes(file);
+		return array == null ? null : new String(readBytes(file));
 	}
 	
 	public static void setLine(File file, int index, String newLine) throws IOException {
@@ -244,7 +246,7 @@ public class FileManager {
 		}
 		long length = file.length();
 		if(length > Integer.MAX_VALUE) {
-			throw new IOException("O arquivo é muito grande para ser copiado.");
+			throw new IOException("O arquivo é muito grande.");
 		}
 		try(FileInputStream inputStream = new FileInputStream(file)) {
 			byte[] array = new byte[(int) length];
@@ -259,15 +261,14 @@ public class FileManager {
 	}
 	
 	public static void setHidden(File file, boolean hidden) throws IOException {
-		Path path = file.toPath();
-		Files.setAttribute(path, "dos:hidden", hidden);
+		Files.setAttribute(file.toPath(), "dos:hidden", hidden);
 	}
 	
 	public static boolean assertExistence(File file, boolean folder) throws IOException {
 		boolean exists = file.exists();
 		if(!exists) {
 			if(folder) {
-				file.mkdir();
+				file.mkdirs();
 			} else {
 				file.createNewFile();
 			}
