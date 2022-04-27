@@ -17,9 +17,7 @@ import java.util.stream.Collectors;
 
 public final class FileManager {
 	
-	private FileManager() {
-		
-	}
+	private FileManager() {}
 	
 	public static Object readObject(File file) throws IOException, ClassNotFoundException {
 		if(!file.exists()) {
@@ -40,7 +38,7 @@ public final class FileManager {
 	}
 	
 	public static void overwriteText(File file, String text) throws IOException {
-		assertExistence(file, false);
+		assertExistence(file);
 		try(BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
 			writer.write(text);
 		}
@@ -55,7 +53,7 @@ public final class FileManager {
 	}
 	
 	public static void appendText(File file, String text, boolean skipLine, boolean duplicate) throws IOException {
-		assertExistence(file, false);
+		assertExistence(file);
 		try(BufferedWriter writer = new BufferedWriter(new FileWriter(file, true))) {
 			String append;
 			boolean clone;
@@ -68,6 +66,14 @@ public final class FileManager {
 			}
 			writer.write(clone ? "" : append);
 		}
+	}
+	
+	public static void overwriteLines(File file, List<String> lines) throws IOException {
+		overwriteText(file, toTextLines(lines));
+	}
+	
+	public static void appendLines(File file, List<String> lines) throws IOException {
+		appendText(file, toTextLines(lines));
 	}
 	
 	public static String readLine(File file, int index) throws IOException {
@@ -264,6 +270,10 @@ public final class FileManager {
 		Files.setAttribute(file.toPath(), "dos:hidden", hidden);
 	}
 	
+	public static boolean assertExistence(File file) throws IOException {
+		return assertExistence(file, false);
+	}
+	
 	public static boolean assertExistence(File file, boolean folder) throws IOException {
 		boolean exists = file.exists();
 		if(!exists) {
@@ -288,37 +298,13 @@ public final class FileManager {
 		}
 	}
 	
-	public static String getPropFileValueFor(File file, String key) throws IOException {
-		if(!file.exists() || !file.getName().endsWith(".properties")) {
-			throw new IOException("O arquivo não existe ou não parece ser do tipo \"properties\".");
+	private static String toTextLines(List<String> lines) {
+		StringBuilder sb = new StringBuilder();
+		int size = lines.size();
+		for(int i = 0; i < size; i++) {
+			sb.append(lines.get(i) + (i == size - 1 ? "" : "\n"));
 		}
-		List<String> lines = lines(file);
-		for(String line : lines) {
-			String[] array = line.split("=");
-			if(array[0].equals(key)) {
-				return array[1];
-			}
-		}
-		return null;
+		return sb.toString();
 	}
 	
-	public static void setPropFileValueFor(File file, String key, String value) throws IOException {
-		if(!file.exists() || !file.getName().endsWith(".properties")) {
-			throw new IOException("O arquivo não existe ou não parece ser do tipo \"properties\".");
-		}
-		List<String> lines = lines(file);
-		boolean add = true;
-		for(int i = 0; i < lines.size(); i++) {
-			String[] array = lines.get(i).split("=");
-			if(array[0].equals(key)) {
-				String newLine = array[0] + "=" + value;
-				setLine(file, i, newLine);
-				add = false;
-				break;
-			}
-		}
-		if(add) {
-			appendText(file, key + "=" + value, true);
-		}
-	}
 }
